@@ -1,5 +1,4 @@
 import shutil
-import subprocess
 import time
 
 import docker
@@ -16,16 +15,12 @@ def status():
     data_disk = shutil.disk_usage("/mnt/data")
 
     try:
-        temperature_output = subprocess.check_output(
-            ["sensors"],
-            text=True,
-        )
-
+        temperatures = psutil.sensors_temperatures()
         temperature = None
 
-        for line in temperature_output.splitlines():
-            if "Package id 0:" in line:
-                temperature = line.split("+")[1].split("°")[0]
+        for sensor in temperatures.get("coretemp", []):
+            if sensor.label == "Package id 0":
+                temperature = round(sensor.current, 1)
                 break
     except Exception:
         temperature = None
