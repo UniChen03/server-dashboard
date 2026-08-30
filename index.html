@@ -99,6 +99,16 @@
             color: #d1d5db;
             font-size: 0.8rem;
         }
+        
+        .status-online {
+            background: #14532d;
+            color: #bbf7d0;
+        }
+
+        .status-offline {
+            background: #7f1d1d;
+            color: #fecaca;
+        }
 
         .error {
             color: #fca5a5;
@@ -202,6 +212,18 @@
             return `${minutes}m`;
         }
 
+        function setServiceStatus(id, status) {
+            const element = document.getElementById(id);
+            const online = status === "running";
+
+            element.textContent = online ? "Online" : "Offline";
+
+            element.classList.remove("status-online", "status-offline");
+            element.classList.add(
+                online ? "status-online" : "status-offline"
+            );
+        }
+
         async function updateStatus() {
             try {
                 const response = await fetch("/api/status");
@@ -214,14 +236,20 @@
                 const services = data.docker_services;
                 
                 if (services) {
-                    document.getElementById("job-tracker-status").textContent =
-                        services.job_tracker === "running" ? "Online" : "Offline";
+                    setServiceStatus(
+                        "job-tracker-status",
+                        services.job_tracker
+                    );
 
-                    document.getElementById("portainer-status").textContent =
-                        services.portainer === "running" ? "Online" : "Offline";
+                    setServiceStatus(
+                        "portainer-status",
+                        services.portainer
+                    );
 
-                    document.getElementById("dashboard-api-status").textContent =
-                        services.dashboard_api === "running" ? "Online" : "Offline";
+                    setServiceStatus(
+                        "dashboard-api-status",
+                        services.dashboard_api
+                    );
                 }
 
                 document.getElementById("cpu").textContent =
