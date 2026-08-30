@@ -1,0 +1,10 @@
+services:
+  dashboard-api:
+    build: .
+    container_name: server-dashboard-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5050:5050"
+    volumes:
+      - /mnt/data:/mnt/data:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro

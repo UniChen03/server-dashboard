@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdeaPad Server</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #111827;
+            color: #f9fafb;
+        }
+
+        main {
+            width: min(1100px, 90%);
+            margin: 0 auto;
+            padding: 60px 0;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            margin: 0 0 32px;
+            color: #9ca3af;
+        }
+
+        .section-title {
+            margin: 36px 0 16px;
+            font-size: 1.2rem;
+        }
+
+        .status-grid,
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .status-card,
+        .card {
+            padding: 20px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 14px;
+        }
+
+        .status-label {
+            color: #9ca3af;
+            font-size: 0.9rem;
+        }
+
+        .status-value {
+            margin-top: 8px;
+            font-size: 1.45rem;
+            font-weight: 600;
+        }
+
+        .card {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+            transition:
+                transform 0.15s ease,
+                background 0.15s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            background: #273449;
+        }
+
+        .card h2 {
+            margin: 0 0 8px;
+            font-size: 1.25rem;
+        }
+
+        .card p {
+            margin: 0;
+            color: #9ca3af;
+            line-height: 1.5;
+        }
+
+        .tag {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 4px 9px;
+            border-radius: 6px;
+            background: #374151;
+            color: #d1d5db;
+            font-size: 0.8rem;
+        }
+
+        .error {
+            color: #fca5a5;
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <h1>IdeaPad Server</h1>
+        <p class="subtitle">Personal server dashboard</p>
+
+        <h2 class="section-title">System Status</h2>
+
+        <div class="status-grid">
+            <div class="status-card">
+                <div class="status-label">CPU</div>
+                <div class="status-value" id="cpu">--</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-label">Memory</div>
+                <div class="status-value" id="memory">--</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-label">System Disk</div>
+                <div class="status-value" id="system-disk">--</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-label">Data SSD</div>
+                <div class="status-value" id="data-disk">--</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-label">Docker</div>
+                <div class="status-value" id="docker">--</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-label">Temperature</div>
+                <div class="status-value" id="temperature">--</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-label">Uptime</div>
+                <div class="status-value" id="uptime">--</div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Services</h2>
+
+        <div class="services">
+            <a class="card" href="/job-application-tracker/">
+                <h2>Job Application Tracker</h2>
+                <p>
+                    Track applications, interviews, offers,
+                    and job search progress.
+                </p>
+                <span class="tag">Flask · SQLite</span>
+            </a>
+
+            <a class="card" href="https://ideapad-server:9443/">
+                <h2>Portainer</h2>
+                <p>
+                    Manage Docker containers, images,
+                    volumes, and services.
+                </p>
+                <span class="tag">Docker</span>
+            </a>
+        </div>
+    </main>
+
+    <script>
+        function gb(bytes) {
+            return (bytes / 1024 / 1024 / 1024).toFixed(1);
+        }
+
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+
+            if (days > 0) {
+                return `${days}d ${hours}h`;
+            }
+
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            }
+
+            return `${minutes}m`;
+        }
+
+        async function updateStatus() {
+            try {
+                const response = await fetch("/api/status");
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                document.getElementById("cpu").textContent =
+                    `${data.cpu_percent.toFixed(1)}%`;
+
+                document.getElementById("memory").textContent =
+                    `${gb(data.memory_used)} / ${gb(data.memory_total)} GB`;
+
+                document.getElementById("system-disk").textContent =
+                    `${gb(data.system_disk_used)} / ${gb(data.system_disk_total)} GB`;
+
+                document.getElementById("data-disk").textContent =
+                    `${gb(data.data_disk_used)} / ${gb(data.data_disk_total)} GB`;
+
+                document.getElementById("docker").textContent =
+                    data.docker_running !== null
+                        ? `${data.docker_running} running`
+                        : "Unavailable";
+
+                document.getElementById("temperature").textContent =
+                    data.temperature !== null
+                        ? `${data.temperature}°C`
+                        : "Unavailable";
+
+                document.getElementById("uptime").textContent =
+                    formatUptime(data.uptime_seconds);
+
+            } catch (error) {
+                console.error("Failed to load server status:", error);
+
+                const ids = [
+                    "cpu",
+                    "memory",
+                    "system-disk",
+                    "data-disk",
+                    "docker",
+                    "temperature",
+                    "uptime"
+                ];
+
+                for (const id of ids) {
+                    const element = document.getElementById(id);
+                    element.textContent = "Unavailable";
+                    element.classList.add("error");
+                }
+            }
+        }
+
+        updateStatus();
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+</html>
