@@ -7,12 +7,14 @@ from flask import Flask, jsonify
 
 app = Flask(__name__)
 
+DATA_DISK_MARKER = "/mnt/data/.server-data-mounted"
+
 
 @app.route("/status")
 def status():
     memory = psutil.virtual_memory()
     system_disk = shutil.disk_usage("/")
-    data_disk_mounted = os.path.ismount("/mnt/data")
+    data_disk_mounted = os.path.isfile(DATA_DISK_MARKER)
 
     if data_disk_mounted:
         data_disk = shutil.disk_usage("/mnt/data")
