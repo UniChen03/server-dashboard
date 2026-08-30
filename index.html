@@ -140,8 +140,13 @@
             </div>
 
             <div class="status-card">
-                <div class="status-label">Temperature</div>
-                <div class="status-value" id="temperature">--</div>
+                <div class="status-label">CPU Temp</div>
+                <div class="status-value" id="cpu-temperature">--</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-label">NVMe Temp</div>
+                <div class="status-value" id="nvme-temperature">--</div>
             </div>
 
             <div class="status-card">
@@ -221,9 +226,14 @@
                         ? `${data.docker_running} running`
                         : "Unavailable";
 
-                document.getElementById("temperature").textContent =
-                    data.temperature !== null
-                        ? `${data.temperature}°C`
+                document.getElementById("cpu-temperature").textContent =
+                    data.cpu_temperature !== null
+                        ? `${data.cpu_temperature}°C`
+                        : "Unavailable";
+
+                document.getElementById("nvme-temperature").textContent =
+                    data.nvme_temperature !== null
+                        ? `${data.nvme_temperature}°C`
                         : "Unavailable";
 
                 document.getElementById("uptime").textContent =
