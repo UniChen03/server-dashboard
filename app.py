@@ -1,6 +1,6 @@
 import shutil
 import time
-
+import os
 import docker
 import psutil
 from flask import Flask, jsonify
@@ -12,7 +12,15 @@ app = Flask(__name__)
 def status():
     memory = psutil.virtual_memory()
     system_disk = shutil.disk_usage("/")
-    data_disk = shutil.disk_usage("/mnt/data")
+    data_disk_mounted = os.path.ismount("/mnt/data")
+
+    if data_disk_mounted:
+        data_disk = shutil.disk_usage("/mnt/data")
+        data_disk_used = data_disk.used
+        data_disk_total = data_disk.total
+    else:
+        data_disk_used = None
+        data_disk_total = None
 
     try:
         temperatures = psutil.sensors_temperatures()
@@ -73,8 +81,9 @@ def status():
     system_disk_used=system_disk.used,
     system_disk_total=system_disk.total,
 
-    data_disk_used=data_disk.used,
-    data_disk_total=data_disk.total,
+    data_disk_used=data_disk_used,
+    data_disk_total=data_disk_total,
+    data_disk_mounted=data_disk_mounted,
 
     cpu_temperature=cpu_temperature,
     nvme_temperature=nvme_temperature,

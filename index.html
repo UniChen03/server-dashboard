@@ -261,8 +261,17 @@
                 document.getElementById("system-disk").textContent =
                     `${gb(data.system_disk_used)} / ${gb(data.system_disk_total)} GB`;
 
-                document.getElementById("data-disk").textContent =
-                    `${gb(data.data_disk_used)} / ${gb(data.data_disk_total)} GB`;
+                const dataDiskElement = document.getElementById("data-disk");
+
+                if (data.data_disk_mounted) {
+                    dataDiskElement.textContent =
+                        `${gb(data.data_disk_used)} / ${gb(data.data_disk_total)} GB`;
+
+                    dataDiskElement.classList.remove("error");
+                } else {
+                    dataDiskElement.textContent = "Not mounted";
+                    dataDiskElement.classList.add("error");
+                }
 
                 document.getElementById("docker").textContent =
                     data.docker_running !== null
