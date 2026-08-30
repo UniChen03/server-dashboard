@@ -36,9 +36,32 @@ def status():
 
     try:
         docker_client = docker.from_env()
-        docker_running = len(docker_client.containers.list())
+        containers = docker_client.containers.list(all=True)
+
+        docker_running = sum(
+            1 for container in containers
+            if container.status == "running"
+        )
+
+        docker_services = {
+            "job_tracker": "offline",
+            "dashboard_api": "offline",
+            "portainer": "offline",
+        }
+
+        for container in containers:
+            if container.name == "job-application-tracker":
+                docker_services["job_tracker"] = container.status
+
+            elif container.name == "server-dashboard-api":
+                docker_services["dashboard_api"] = container.status
+
+            elif container.name == "portainer":
+                docker_services["portainer"] = container.status
+
     except Exception:
         docker_running = None
+        docker_services = None
 
     return jsonify(
     uptime_seconds=int(time.time() - psutil.boot_time()),
@@ -57,4 +80,5 @@ def status():
     nvme_temperature=nvme_temperature,
 
     docker_running=docker_running,
+    docker_services=docker_services,
 )
