@@ -157,26 +157,26 @@
 
         <h2 class="section-title">Services</h2>
 
-        <div class="service-card">
-            <div>
-                <div class="service-title">Job Tracker</div>
-                <div class="service-status" id="job-tracker-status">Checking...</div>
-            </div>
-            <a href="/job-application-tracker/" class="service-button">Open</a>
-        </div>
+        <div class="services">
+            <a href="/job-application-tracker/" class="card">
+                <h2>Job Application Tracker</h2>
+                <p>Track applications, interviews, offers, and job search progress.</p>
+                <span class="tag">Flask · SQLite</span>
+                <span class="tag" id="job-tracker-status">Checking...</span>
+            </a>
 
-        <div class="service-card">
-            <div>
-                <div class="service-title">Portainer</div>
-                <div class="service-status" id="portainer-status">Checking...</div>
-            </div>
-            <a href="https://ideapad-server:9443/" class="service-button">Open</a>
-        </div>
+            <a href="https://ideapad-server:9443/" class="card">
+                <h2>Portainer</h2>
+                <p>Manage Docker containers, images, volumes, and services.</p>
+                <span class="tag">Docker</span>
+                <span class="tag" id="portainer-status">Checking...</span>
+            </a>
 
-        <div class="service-card">
-            <div>
-                <div class="service-title">Dashboard API</div>
-                <div class="service-status" id="dashboard-api-status">Checking...</div>
+            <div class="card">
+                <h2>Dashboard API</h2>
+                <p>Provides live system metrics and service status.</p>
+                <span class="tag">Flask · Docker</span>
+                <span class="tag" id="dashboard-api-status">Checking...</span>
             </div>
         </div>
     </main>
@@ -207,6 +207,12 @@
                 const response = await fetch("/api/status");
                 const services = data.docker_services;
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                
                 if (services) {
                     document.getElementById("job-tracker-status").textContent =
                         services.job_tracker === "running" ? "Online" : "Offline";
@@ -217,12 +223,6 @@
                     document.getElementById("dashboard-api-status").textContent =
                         services.dashboard_api === "running" ? "Online" : "Offline";
                 }
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const data = await response.json();
 
                 document.getElementById("cpu").textContent =
                     `${data.cpu_percent.toFixed(1)}%`;
@@ -263,7 +263,8 @@
                     "system-disk",
                     "data-disk",
                     "docker",
-                    "temperature",
+                    "cpu-temperature",
+                    "nvme-temperature",
                     "uptime"
                 ];
 
