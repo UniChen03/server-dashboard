@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IdeaPad Server</title>
+    <title>Server Dashboard</title>
 
     <style>
         * {
@@ -118,7 +118,7 @@
 
 <body>
     <main>
-        <h1>IdeaPad Server</h1>
+        <h1>Server Dashboard</h1>
         <p class="subtitle">Personal server dashboard</p>
 
         <h2 class="section-title">System Status</h2>
@@ -167,28 +167,7 @@
 
         <h2 class="section-title">Services</h2>
 
-        <div class="services">
-            <a href="/job-application-tracker/" class="card">
-                <h2>Job Application Tracker</h2>
-                <p>Track applications, interviews, offers, and job search progress.</p>
-                <span class="tag">Flask · SQLite</span>
-                <span class="tag" id="job-tracker-status">Checking...</span>
-            </a>
-
-            <a href="https://ideapad-server:9443/" class="card">
-                <h2>Portainer</h2>
-                <p>Manage Docker containers, images, volumes, and services.</p>
-                <span class="tag">Docker</span>
-                <span class="tag" id="portainer-status">Checking...</span>
-            </a>
-
-            <div class="card">
-                <h2>Dashboard API</h2>
-                <p>Provides live system metrics and service status.</p>
-                <span class="tag">Flask · Docker</span>
-                <span class="tag" id="dashboard-api-status">Checking...</span>
-            </div>
-        </div>
+        <div class="services" id="services" aria-live="polite">Checking...</div>
     </main>
 
     <script>
@@ -212,18 +191,51 @@
             return `${minutes}m`;
         }
 
-        function setServiceStatus(id, status) {
-            const element = document.getElementById(id);
-            const online = status === "running";
-
-            element.textContent = online ? "Online" : "Offline";
-
-            element.classList.remove("status-online", "status-offline");
-            element.classList.add(
-                online ? "status-online" : "status-offline"
-            );
+        function safeServiceUrl(value) {
+            if (typeof value !== "string" || !value || /[\s\\]/.test(value)) return null;
+            if (value.startsWith("/") && !value.startsWith("//")) return value;
+            try {
+                const url = new URL(value);
+                return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password
+                    ? url.href : null;
+            } catch { return null; }
         }
 
+        function renderServices(services) {
+            const root = document.getElementById("services");
+            root.replaceChildren();
+            if (!Array.isArray(services)) {
+                root.textContent = "Service status unavailable";
+                return;
+            }
+            if (!services.length) {
+                root.textContent = "No dashboard services enabled";
+                return;
+            }
+            for (const service of services) {
+                const url = safeServiceUrl(service.url);
+                const card = document.createElement(url ? "a" : "div");
+                card.className = "card";
+                if (url) card.href = url;
+                for (const [tag, text, className] of [
+                    ["h2", service.name, ""],
+                    ["p", service.description, ""],
+                    ["span", service.tag, "tag"],
+                ]) {
+                    if (!text) continue;
+                    const element = document.createElement(tag);
+                    element.textContent = text;
+                    element.className = className;
+                    card.appendChild(element);
+                }
+                const badge = document.createElement("span");
+                const online = service.status === "running";
+                badge.className = `tag ${online ? "status-online" : "status-offline"}`;
+                badge.textContent = online ? "Online" : `Offline (${service.status || "unknown"})`;
+                card.appendChild(badge);
+                root.appendChild(card);
+            }
+        }
         async function updateStatus() {
             try {
                 const response = await fetch("/api/status");
@@ -233,24 +245,7 @@
                 }
 
                 const data = await response.json();
-                const services = data.docker_services;
-                
-                if (services) {
-                    setServiceStatus(
-                        "job-tracker-status",
-                        services.job_tracker
-                    );
-
-                    setServiceStatus(
-                        "portainer-status",
-                        services.portainer
-                    );
-
-                    setServiceStatus(
-                        "dashboard-api-status",
-                        services.dashboard_api
-                    );
-                }
+                renderServices(data.docker_services);
 
                 document.getElementById("cpu").textContent =
                     `${data.cpu_percent.toFixed(1)}%`;
@@ -275,7 +270,7 @@
 
                 document.getElementById("docker").textContent =
                     data.docker_running !== null
-                        ? `${data.docker_running} running`
+                        ? `${data.docker_running} enabled running`
                         : "Unavailable";
 
                 document.getElementById("cpu-temperature").textContent =
@@ -293,6 +288,7 @@
 
             } catch (error) {
                 console.error("Failed to load server status:", error);
+                renderServices(null);
 
                 const ids = [
                     "cpu",

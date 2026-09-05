@@ -1,6 +1,7 @@
 import shutil
 import time
 import os
+from urllib.parse import urlsplit
 import docker
 import psutil
 from flask import Flask, jsonify
@@ -8,6 +9,51 @@ from flask import Flask, jsonify
 app = Flask(__name__)
 
 DATA_DISK_MARKER = "/mnt/data/.server-data-mounted"
+
+
+def safe_service_url(value):
+    """Allow local absolute paths and HTTP(S), never executable URLs."""
+    if not value or any(ord(char) <= 32 for char in value) or "\\" in value:
+        return None
+    try:
+        parsed = urlsplit(value)
+        if value.startswith("/") and not value.startswith("//"):
+            return value
+        if parsed.scheme in ("http", "https") and parsed.hostname and not parsed.username and not parsed.password:
+            return value
+    except ValueError:
+        pass
+    return None
+
+
+def discover_services():
+    client = docker.from_env()
+    try:
+        containers = client.containers.list(
+            all=True, filters={"label": "dashboard.enable=true"}
+        )
+        services = []
+        for container in containers:
+            labels = container.labels or {}
+            # Enforce the allowlist even if the Docker endpoint ignores filters.
+            if labels.get("dashboard.enable") != "true":
+                continue
+            try:
+                order = int(labels.get("dashboard.order", "100"))
+            except (ValueError, TypeError):
+                order = 100
+            services.append({
+                "name": labels.get("dashboard.name") or "Service",
+                "description": labels.get("dashboard.description", ""),
+                "url": safe_service_url(labels.get("dashboard.url", "")),
+                "tag": labels.get("dashboard.tag", ""),
+                "order": order,
+                "status": container.status,
+            })
+        services.sort(key=lambda service: (service["order"], service["name"], service["url"] or ""))
+        return services
+    finally:
+        client.close()
 
 
 @app.route("/status")
@@ -45,29 +91,11 @@ def status():
         nvme_temperature = None
 
     try:
-        docker_client = docker.from_env()
-        containers = docker_client.containers.list(all=True)
-
+        docker_services = discover_services()
         docker_running = sum(
-            1 for container in containers
-            if container.status == "running"
+            1 for service in docker_services
+            if service["status"] == "running"
         )
-
-        docker_services = {
-            "job_tracker": "offline",
-            "dashboard_api": "offline",
-            "portainer": "offline",
-        }
-
-        for container in containers:
-            if container.name == "job-application-tracker":
-                docker_services["job_tracker"] = container.status
-
-            elif container.name == "server-dashboard-api":
-                docker_services["dashboard_api"] = container.status
-
-            elif container.name == "portainer":
-                docker_services["portainer"] = container.status
 
     except Exception:
         docker_running = None

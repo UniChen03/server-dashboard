@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 .env
 .venv/
+.test-deps/
+compose.override.yaml
+docs/local-services.md
